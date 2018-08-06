@@ -21,6 +21,9 @@ import {
 const colorPickerRadius = 20;
 const dragThreshold = 3; // Same as the block drag threshold
 
+let mediaRecorder;
+let recordedBlobs;
+
 class Stage extends React.Component {
     constructor (props) {
         super(props);
@@ -41,7 +44,8 @@ class Stage extends React.Component {
             'setDragCanvas',
             'clearDragCanvas',
             'drawDragCanvas',
-            'positionDragCanvas'
+            'positionDragCanvas',
+            'startRecording'
         ]);
         this.state = {
             mouseDownTimeoutId: null,
@@ -365,6 +369,74 @@ class Stage extends React.Component {
     setDragCanvas (canvas) {
         this.dragCanvas = canvas;
     }
+
+    stopRecording() {
+      mediaRecorder.stop();
+    const video = document.querySelector('video');
+      video.controls = true;
+    }
+
+  handleStop(event) {
+    const video = document.querySelector('video');
+    const superBuffer = new Blob(recordedBlobs, {type: 'video/webm'});
+    video.src = window.URL.createObjectURL(superBuffer);
+  }
+
+  handleDataAvailable(event) {
+    if (event.data && event.data.size > 0) {
+      recordedBlobs.push(event.data);
+    }
+  }
+
+  startRecording(){
+    navigator.mediaDevices.getUserMedia({ audio: true })
+      .then(audioStream => {
+        const canvas = document.querySelector('canvas');
+        const canvasStream = canvas.captureStream(); // frames per second
+        let options = {mimeType: 'video/webm'};
+
+        // merge the stream
+        let finalStream = new MediaStream();
+        audioStream.getAudioTracks().forEach(function(track) {
+          finalStream.addTrack(track);
+        });
+        canvasStream.getVideoTracks().forEach(function(track) {
+          finalStream.addTrack(track);
+        });
+
+        recordedBlobs = [];
+        mediaRecorder = new MediaRecorder(finalStream, options);
+        mediaRecorder.onstop = this.handleStop;
+        mediaRecorder.ondataavailable = this.handleDataAvailable;
+        mediaRecorder.start(100); // collect 100ms of data
+      });
+  }
+
+  recordAudio(){
+    navigator.mediaDevices.getUserMedia({ audio: true })
+      .then(stream => {
+        const mediaRecorder1 = new MediaRecorder(stream);
+        mediaRecorder1.start();
+
+        const audioChunks = [];
+        mediaRecorder1.addEventListener("dataavailable", event => {
+          audioChunks.push(event.data);
+        });
+
+        mediaRecorder1.addEventListener("stop", () => {
+          const audioBlob = new Blob(audioChunks);
+          const audioUrl = URL.createObjectURL(audioBlob);
+          const audio = new Audio(audioUrl);
+          console.log("hello there")
+          audio.play();
+        });
+
+        setTimeout(() => {
+          mediaRecorder1.stop();
+        }, 3000);
+      });
+  }
+
     render () {
         const {
             vm, // eslint-disable-line no-unused-vars
@@ -372,6 +444,8 @@ class Stage extends React.Component {
             ...props
         } = this.props;
         return (
+          <div>
+            <div onClick={this.recordAudio}>录音</div>
             <StageComponent
                 canvas={this.canvas}
                 colorInfo={this.state.colorInfo}
@@ -379,8 +453,11 @@ class Stage extends React.Component {
                 question={this.state.question}
                 onDoubleClick={this.handleDoubleClick}
                 onQuestionAnswered={this.handleQuestionAnswered}
+                startRecord={this.startRecording}
+                stopRecord={this.stopRecording}
                 {...props}
             />
+          </div>
         );
     }
 }

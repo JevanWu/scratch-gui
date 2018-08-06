@@ -24,6 +24,8 @@ const StageComponent = props => {
         onDeactivateColorPicker,
         onDoubleClick,
         onQuestionAnswered,
+        startRecord,
+        stopRecord,
         ...boxProps
     } = props;
 
@@ -31,6 +33,9 @@ const StageComponent = props => {
 
     return (
         <div>
+            <div onClick={startRecord}>start recording</div>
+            <div onClick={stopRecord}>stop recording</div>
+            <video></video>
             <Box
                 className={classNames({
                     [styles.stageWrapper]: !isFullScreen,
