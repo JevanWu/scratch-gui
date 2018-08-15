@@ -19,6 +19,13 @@ import wedoButtonImage from './device-connection/wedo/wedo-button-illustration.s
 
 export default [
     {
+        name: 'Choose an extension',
+        extensionId: 'utilities',
+        iconURL: penImage,
+        description: 'For developers',
+        featured: true
+    },
+    {
         name: (
             <FormattedMessage
                 defaultMessage="Music"
@@ -172,6 +179,5 @@ export default [
             />
         ),
         helpLink: 'https://scratch.mit.edu/wedo'
-
     }
 ];

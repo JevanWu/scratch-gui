@@ -1,4 +1,5 @@
 var ExampleExtension = function () {
+  this.runtime = runtimeProxy;
 };
 
 /**
