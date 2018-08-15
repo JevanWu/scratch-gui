@@ -13,6 +13,8 @@ import {BitmapAdapter as V2BitmapAdapter} from 'scratch-svg-renderer';
 
 import StageComponent from '../components/stage/stage.jsx';
 
+import SharedAudioContext from '../lib/audio/shared-audio-context.js';
+
 import {
     activateColorPicker,
     deactivateColorPicker
@@ -45,7 +47,8 @@ class Stage extends React.Component {
             'clearDragCanvas',
             'drawDragCanvas',
             'positionDragCanvas',
-            'startRecording'
+            'startRecording',
+            'recordAudio',
         ]);
         this.state = {
             mouseDownTimeoutId: null,
@@ -67,6 +70,8 @@ class Stage extends React.Component {
         this.props.vm.attachV2SVGAdapter(new V2SVGAdapter());
         this.props.vm.attachV2BitmapAdapter(new V2BitmapAdapter());
         this.props.vm.setVideoProvider(new VideoProvider());
+
+        this.audioContext = new SharedAudioContext();
     }
     componentDidMount () {
         this.attachRectEvents();
@@ -376,6 +381,11 @@ class Stage extends React.Component {
       video.controls = true;
     }
 
+  // handleStop(event) {
+  //   const video = document.querySelector('video');
+  //   const superBuffer = new Blob(recordedBlobs, {type: 'video/webm'});
+  //   video.src = window.URL.createObjectURL(superBuffer);
+  // }
   handleStop(event) {
     const video = document.querySelector('video');
     const superBuffer = new Blob(recordedBlobs, {type: 'video/webm'});
@@ -391,13 +401,21 @@ class Stage extends React.Component {
   startRecording(){
     navigator.mediaDevices.getUserMedia({ audio: true })
       .then(audioStream => {
+        console.log("stream: " + audioStream)
         const canvas = document.querySelector('canvas');
         const canvasStream = canvas.captureStream(); // frames per second
         let options = {mimeType: 'video/webm'};
 
+        window.AudioContext = window.AudioContext || window.webkitAudioContext;
+        var ac = new AudioContext();
+        var dest = ac.createMediaStreamDestination();
+
         // merge the stream
         let finalStream = new MediaStream();
         audioStream.getAudioTracks().forEach(function(track) {
+          finalStream.addTrack(track);
+        });
+        dest.stream.getAudioTracks().forEach(function(track) {
           finalStream.addTrack(track);
         });
         canvasStream.getVideoTracks().forEach(function(track) {
@@ -413,29 +431,61 @@ class Stage extends React.Component {
   }
 
   recordAudio(){
-    navigator.mediaDevices.getUserMedia({ audio: true })
-      .then(stream => {
-        const mediaRecorder1 = new MediaRecorder(stream);
-        mediaRecorder1.start();
+    // 换index可以切换到不同的声音
+    const audioBuffer = this.props.vm.getSoundBuffer(0)
+    const sampleRate = audioBuffer.sampleRate
+    const samples = audioBuffer.getChannelData(0)
+    let options = {mimeType: 'video/webm'};
 
-        const audioChunks = [];
-        mediaRecorder1.addEventListener("dataavailable", event => {
-          audioChunks.push(event.data);
-        });
+    console.log(samples)
+    console.log(sampleRate)
 
-        mediaRecorder1.addEventListener("stop", () => {
-          const audioBlob = new Blob(audioChunks);
-          const audioUrl = URL.createObjectURL(audioBlob);
-          const audio = new Audio(audioUrl);
-          console.log("hello there")
-          audio.play();
-        });
+    let source = this.audioContext.createBufferSource();
+    source.buffer = audioBuffer
+    source.connect(this.audioContext.destination);
+    source.start();
 
-        setTimeout(() => {
-          mediaRecorder1.stop();
-        }, 3000);
-      });
+    // recordedBlobs = [];
+    // const mediaRecorder = new MediaRecorder(samples);
+    // mediaRecorder.ondataavailable = this.handleDataAvailable;
+    // mediaRecorder.start(); // collect 100ms of data
+    // mediaRecorder.addEventListener("stop", () => {
+    //   const audioBlob = new Blob(recordedBlobs);
+    //   const audioUrl = URL.createObjectURL(audioBlob);
+    //   const audio = new Audio(audioUrl);
+    //   console.log("hello there")
+    //   audio.play();
+    // });
+    //
+    // setTimeout(() => {
+    //   mediaRecorder.stop();
+    // }, 3000);
   }
+
+  // recordAudio(){
+  //   navigator.mediaDevices.getUserMedia({ audio: true })
+  //     .then(stream => {
+  //       const mediaRecorder = new MediaRecorder(stream);
+  //       mediaRecorder.start();
+  //
+  //       const audioChunks = [];
+  //       mediaRecorder.addEventListener("dataavailable", event => {
+  //         audioChunks.push(event.data);
+  //       });
+  //
+  //       mediaRecorder.addEventListener("stop", () => {
+  //         const audioBlob = new Blob(audioChunks);
+  //         const audioUrl = URL.createObjectURL(audioBlob);
+  //         const audio = new Audio(audioUrl);
+  //         console.log("hello there")
+  //         audio.play();
+  //       });
+  //
+  //       setTimeout(() => {
+  //         mediaRecorder.stop();
+  //       }, 3000);
+  //     });
+  // }
 
     render () {
         const {
