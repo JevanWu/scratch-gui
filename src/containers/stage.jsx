@@ -422,11 +422,24 @@ class Stage extends React.Component {
           finalStream.addTrack(track);
         });
 
+        // 换index可以切换到不同的声音
+        const audioBuffer = this.props.vm.getSoundBuffer(1)
+        const sampleRate = audioBuffer.sampleRate
+        const samples = audioBuffer.getChannelData(0)
+        let source = this.audioContext.createBufferSource();
+        source.buffer = audioBuffer
+        var dest = this.audioContext.createMediaStreamDestination();
+        source.connect(dest)
+        dest.stream.getVideoTracks().forEach(function(track) {
+          finalStream.addTrack(track);
+        });
+
         recordedBlobs = [];
         mediaRecorder = new MediaRecorder(finalStream, options);
         mediaRecorder.onstop = this.handleStop;
         mediaRecorder.ondataavailable = this.handleDataAvailable;
         mediaRecorder.start(100); // collect 100ms of data
+        source.start();
       });
   }
 
