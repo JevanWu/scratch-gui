@@ -399,11 +399,28 @@ class Stage extends React.Component {
   }
 
   startRecording(){
+
+
+    recordedBlobs = []
+
+    let finalStream = new MediaStream();
+    // 换index可以切换到不同的声音
+    const audioBuffer = this.props.vm.getSoundBuffer(1)
+    const sampleRate = audioBuffer.sampleRate
+    const samples = audioBuffer.getChannelData(0)
+    let source = this.audioContext.createBufferSource();
+    source.buffer = audioBuffer
+    var dest = this.audioContext.createMediaStreamDestination();
+    source.connect(dest)
+    dest.stream.getAudioTracks().forEach(function(track) {
+      console.log("track")
+      console.log(track)
+      finalStream.addTrack(track);
+    });
+
     navigator.mediaDevices.getUserMedia({ audio: true })
       .then(audioStream => {
         console.log("stream: " + audioStream)
-
-        recordedBlobs = []
 
         const canvas = document.querySelector('canvas');
         const canvasStream = canvas.captureStream(); // frames per second
@@ -414,7 +431,6 @@ class Stage extends React.Component {
         var dest = ac.createMediaStreamDestination();
 
         // merge the stream
-        let finalStream = new MediaStream();
         audioStream.getAudioTracks().forEach(function(track) {
           finalStream.addTrack(track);
         });
@@ -422,20 +438,6 @@ class Stage extends React.Component {
           finalStream.addTrack(track);
         });
         canvasStream.getVideoTracks().forEach(function(track) {
-          finalStream.addTrack(track);
-        });
-
-        // 换index可以切换到不同的声音
-        const audioBuffer = this.props.vm.getSoundBuffer(1)
-        const sampleRate = audioBuffer.sampleRate
-        const samples = audioBuffer.getChannelData(0)
-        let source = this.audioContext.createBufferSource();
-        source.buffer = audioBuffer
-        var dest = this.audioContext.createMediaStreamDestination();
-        source.connect(dest)
-        dest.stream.getAudioTracks().forEach(function(track) {
-          console.log("track")
-          console.log(track)
           finalStream.addTrack(track);
         });
 
