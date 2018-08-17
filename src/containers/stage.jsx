@@ -377,7 +377,7 @@ class Stage extends React.Component {
 
     stopRecording() {
       mediaRecorder.stop();
-    const video = document.querySelector('video');
+      const video = document.querySelector('video');
       video.controls = true;
     }
 
@@ -402,6 +402,9 @@ class Stage extends React.Component {
     navigator.mediaDevices.getUserMedia({ audio: true })
       .then(audioStream => {
         console.log("stream: " + audioStream)
+
+        recordedBlobs = []
+
         const canvas = document.querySelector('canvas');
         const canvasStream = canvas.captureStream(); // frames per second
         let options = {mimeType: 'video/webm'};
@@ -430,11 +433,12 @@ class Stage extends React.Component {
         source.buffer = audioBuffer
         var dest = this.audioContext.createMediaStreamDestination();
         source.connect(dest)
-        dest.stream.getVideoTracks().forEach(function(track) {
+        dest.stream.getAudioTracks().forEach(function(track) {
+          console.log("track")
+          console.log(track)
           finalStream.addTrack(track);
         });
 
-        recordedBlobs = [];
         mediaRecorder = new MediaRecorder(finalStream, options);
         mediaRecorder.onstop = this.handleStop;
         mediaRecorder.ondataavailable = this.handleDataAvailable;
@@ -445,34 +449,39 @@ class Stage extends React.Component {
 
   recordAudio(){
     // 换index可以切换到不同的声音
-    const audioBuffer = this.props.vm.getSoundBuffer(0)
+    const audioBuffer = this.props.vm.getSoundBuffer(1)
     const sampleRate = audioBuffer.sampleRate
     const samples = audioBuffer.getChannelData(0)
+    let source = this.audioContext.createBufferSource();
+    source.buffer = audioBuffer
+    var dest = this.audioContext.createMediaStreamDestination();
     let options = {mimeType: 'video/webm'};
 
     console.log(samples)
     console.log(sampleRate)
 
-    let source = this.audioContext.createBufferSource();
-    source.buffer = audioBuffer
-    source.connect(this.audioContext.destination);
+    source.connect(dest)
     source.start();
 
-    // recordedBlobs = [];
-    // const mediaRecorder = new MediaRecorder(samples);
-    // mediaRecorder.ondataavailable = this.handleDataAvailable;
-    // mediaRecorder.start(); // collect 100ms of data
-    // mediaRecorder.addEventListener("stop", () => {
-    //   const audioBlob = new Blob(recordedBlobs);
-    //   const audioUrl = URL.createObjectURL(audioBlob);
-    //   const audio = new Audio(audioUrl);
-    //   console.log("hello there")
-    //   audio.play();
-    // });
-    //
-    // setTimeout(() => {
-    //   mediaRecorder.stop();
-    // }, 3000);
+    recordedBlobs = [];
+    const mediaRecorder = new MediaRecorder(dest.stream);
+    mediaRecorder.ondataavailable = this.handleDataAvailable;
+    mediaRecorder.start(); // collect 100ms of data
+    mediaRecorder.addEventListener("stop", () => {
+      const video = document.querySelector('video');
+      const audioBlob = new Blob(recordedBlobs, {type: 'video/webm'});
+      // const audioUrl = URL.createObjectURL(audioBlob);
+      // const audio = new Audio(audioUrl);
+      console.log("hello there")
+      // audio.play();
+      //
+      video.src = window.URL.createObjectURL(audioBlob);
+      video.controls = true;
+    });
+
+    setTimeout(() => {
+      mediaRecorder.stop();
+    }, 3000);
   }
 
   // recordAudio(){
