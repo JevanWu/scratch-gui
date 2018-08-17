@@ -15,6 +15,8 @@ import StageComponent from '../components/stage/stage.jsx';
 
 import SharedAudioContext from '../lib/audio/shared-audio-context.js';
 
+import {record} from '../lib/recorder';
+
 import {
     activateColorPicker,
     deactivateColorPicker
@@ -49,6 +51,7 @@ class Stage extends React.Component {
             'positionDragCanvas',
             'startRecording',
             'recordAudio',
+            'test',
         ]);
         this.state = {
             mouseDownTimeoutId: null,
@@ -399,8 +402,6 @@ class Stage extends React.Component {
   }
 
   startRecording(){
-
-
     recordedBlobs = []
 
     let finalStream = new MediaStream();
@@ -511,6 +512,11 @@ class Stage extends React.Component {
   //     });
   // }
 
+  test(){
+    const audioBuffer = this.props.vm.getSoundBuffer(1)
+    record(audioBuffer)
+  }
+
     render () {
         const {
             vm, // eslint-disable-line no-unused-vars
@@ -519,7 +525,7 @@ class Stage extends React.Component {
         } = this.props;
         return (
           <div>
-            <div onClick={this.recordAudio}>录音</div>
+            <div onClick={this.test}>录音</div>
             <StageComponent
                 canvas={this.canvas}
                 colorInfo={this.state.colorInfo}
