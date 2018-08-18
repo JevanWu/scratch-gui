@@ -10,8 +10,7 @@ class Recorder {
     this.audioContext = new AudioContext();
     this.dest = this.audioContext.createMediaStreamDestination();
 
-    let options = {mimeType: 'video/webm'};
-    this.mediaRecorder = new MediaRecorder(this.finalStream, options);
+    this.mediaRecorder = null
     this.start.bind(this)
     this.stop.bind(this)
     this.handleStop.bind(this)
@@ -28,7 +27,8 @@ class Recorder {
 
   start(){
     let that = this
-
+    let options = {mimeType: 'video/webm'};
+    this.mediaRecorder = new MediaRecorder(this.finalStream, options);
     navigator.mediaDevices.getUserMedia({ audio: true })
       .then(audioStream => {
 
@@ -60,6 +60,8 @@ class Recorder {
 
   stop(){
     this.mediaRecorder.stop();
+    this.finalStream = new MediaStream();
+    this.recordedBlobs = [];
     const video = document.querySelector('video');
     video.controls = true;
   }
@@ -67,6 +69,7 @@ class Recorder {
   handleStop(){
     const video = document.querySelector('video');
     const superBuffer = new Blob(this.recordedBlobs, {type: 'video/webm'});
+    video.innerHtml = '';
     video.src = window.URL.createObjectURL(superBuffer);
   }
 
