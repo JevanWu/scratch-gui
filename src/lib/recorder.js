@@ -1,71 +1,90 @@
-import SharedAudioContext from './audio/shared-audio-context.js';
+class Recorder {
+  constructor(){
+    this.recordedBlobs = [];
 
-const record = (audioBuffer) => {
-  let recordedBlobs = []
+    this.finalStream = new MediaStream();
 
-  let finalStream = new MediaStream();
+    // const sampleRate = audioBuffer.sampleRate
+    // const samples = audioBuffer.getChannelData(0)
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    this.audioContext = new AudioContext();
+    this.dest = this.audioContext.createMediaStreamDestination();
 
-  const sampleRate = audioBuffer.sampleRate
-  const samples = audioBuffer.getChannelData(0)
-  const audioContext = new SharedAudioContext();
-  let source = audioContext.createBufferSource();
-  source.buffer = audioBuffer
-  var dest = audioContext.createMediaStreamDestination();
-  source.connect(dest)
-  dest.stream.getAudioTracks().forEach(function(track) {
-    finalStream.addTrack(track);
-  });
+    let options = {mimeType: 'video/webm'};
+    this.mediaRecorder = new MediaRecorder(this.finalStream, options);
+    this.start.bind(this)
+    this.stop.bind(this)
+    this.handleStop.bind(this)
+    this.handleDataAvailable.bind(this)
+    this.addAudioBufferSource.bind(this)
+  }
 
-  navigator.mediaDevices.getUserMedia({ audio: true })
-    .then(audioStream => {
+  addAudioBufferSource(audioContext, audioBuffer){
+    let source = this.audioContext.createBufferSource();
+    source.buffer = audioBuffer
+    source.connect(this.dest)
+    source.start()
+  }
 
-      const canvas = document.querySelector('canvas');
-      const canvasStream = canvas.captureStream(); // frames per second
-      let options = {mimeType: 'video/webm'};
+  start(){
+    let that = this
 
-      // window.AudioContext = window.AudioContext || window.webkitAudioContext;
-      // var ac = new AudioContext();
-      var dest = audioContext.createMediaStreamDestination();
+    navigator.mediaDevices.getUserMedia({ audio: true })
+      .then(audioStream => {
 
-      // merge the stream
-      audioStream.getAudioTracks().forEach(function(track) {
-        finalStream.addTrack(track);
+        const canvas = document.querySelector('canvas');
+        const canvasStream = canvas.captureStream(); // frames per second
+
+        // window.AudioContext = window.AudioContext || window.webkitAudioContext;
+        // var ac = new AudioContext();
+        // var dest = audioContext.createMediaStreamDestination();
+
+        // merge the stream
+        that.dest.stream.getAudioTracks().forEach(function(track) {
+          that.finalStream.addTrack(track);
+        });
+
+        audioStream.getAudioTracks().forEach(function(track) {
+          that.finalStream.addTrack(track);
+        });
+
+        canvasStream.getVideoTracks().forEach(function(track) {
+          that.finalStream.addTrack(track);
+        });
+
+        that.mediaRecorder.onstop = that.handleStop.bind(that);
+        that.mediaRecorder.ondataavailable = that.handleDataAvailable.bind(that);
+        that.mediaRecorder.start(); // collect 100ms of data
       });
-      dest.stream.getAudioTracks().forEach(function(track) {
-        finalStream.addTrack(track);
-      });
-      canvasStream.getVideoTracks().forEach(function(track) {
-        finalStream.addTrack(track);
-      });
+  }
 
-      let mediaRecorder = new MediaRecorder(finalStream, options);
-      mediaRecorder.onstop = handleStop;
-      mediaRecorder.ondataavailable = handleDataAvailable;
-      mediaRecorder.start(100); // collect 100ms of data
-      source.start();
-
-
-      setTimeout(() => {
-        mediaRecorder.stop();
-        const video = document.querySelector('video');
-        video.controls = true;
-      }, 10000);
-    });
-
-
-  function handleStop(event) {
+  stop(){
+    this.mediaRecorder.stop();
     const video = document.querySelector('video');
-    const superBuffer = new Blob(recordedBlobs, {type: 'video/webm'});
+    video.controls = true;
+  }
+
+  handleStop(){
+    const video = document.querySelector('video');
+    const superBuffer = new Blob(this.recordedBlobs, {type: 'video/webm'});
     video.src = window.URL.createObjectURL(superBuffer);
   }
 
-  function handleDataAvailable(event) {
+  handleDataAvailable(event){
     if (event.data && event.data.size > 0) {
-      recordedBlobs.push(event.data);
+      this.recordedBlobs.push(event.data);
     }
   }
 }
 
+function initRecorder(){
+  if(window.recorder == undefined){
+    window.recorder = new Recorder()
+  }
+
+  return window.recorder
+}
+
 export {
-  record
+  initRecorder
 };

@@ -15,7 +15,8 @@ import StageComponent from '../components/stage/stage.jsx';
 
 import SharedAudioContext from '../lib/audio/shared-audio-context.js';
 
-import {record} from '../lib/recorder';
+import {initRecorder} from '../lib/recorder';
+import {record} from '../lib/record';
 
 import {
     activateColorPicker,
@@ -50,6 +51,7 @@ class Stage extends React.Component {
             'drawDragCanvas',
             'positionDragCanvas',
             'startRecording',
+            'stopRecording',
             'recordAudio',
             'test',
         ]);
@@ -75,6 +77,7 @@ class Stage extends React.Component {
         this.props.vm.setVideoProvider(new VideoProvider());
 
         this.audioContext = new SharedAudioContext();
+      this.recorder = initRecorder();
     }
     componentDidMount () {
         this.attachRectEvents();
@@ -379,9 +382,7 @@ class Stage extends React.Component {
     }
 
     stopRecording() {
-      mediaRecorder.stop();
-      const video = document.querySelector('video');
-      video.controls = true;
+      this.recorder.stop()
     }
 
   // handleStop(event) {
@@ -402,56 +403,58 @@ class Stage extends React.Component {
   }
 
   startRecording(){
-    recordedBlobs = []
-
-    let finalStream = new MediaStream();
-    // 换index可以切换到不同的声音
-    const audioBuffer = this.props.vm.getSoundBuffer(1)
-    const sampleRate = audioBuffer.sampleRate
-    const samples = audioBuffer.getChannelData(0)
-    let source = this.audioContext.createBufferSource();
-    source.buffer = audioBuffer
-    var dest = this.audioContext.createMediaStreamDestination();
-    source.connect(dest)
-    dest.stream.getAudioTracks().forEach(function(track) {
-      console.log("track")
-      console.log(track)
-      finalStream.addTrack(track);
-    });
-
-    navigator.mediaDevices.getUserMedia({ audio: true })
-      .then(audioStream => {
-        console.log("stream: " + audioStream)
-
-        const canvas = document.querySelector('canvas');
-        const canvasStream = canvas.captureStream(); // frames per second
-        let options = {mimeType: 'video/webm'};
-
-        window.AudioContext = window.AudioContext || window.webkitAudioContext;
-        var ac = new AudioContext();
-        var dest = ac.createMediaStreamDestination();
-
-        // merge the stream
-        audioStream.getAudioTracks().forEach(function(track) {
-          finalStream.addTrack(track);
-        });
-        dest.stream.getAudioTracks().forEach(function(track) {
-          finalStream.addTrack(track);
-        });
-        canvasStream.getVideoTracks().forEach(function(track) {
-          finalStream.addTrack(track);
-        });
-
-        mediaRecorder = new MediaRecorder(finalStream, options);
-        mediaRecorder.onstop = this.handleStop;
-        mediaRecorder.ondataavailable = this.handleDataAvailable;
-        mediaRecorder.start(100); // collect 100ms of data
-        source.start();
-      });
+    // recordedBlobs = []
+    //
+    // let finalStream = new MediaStream();
+    // // 换index可以切换到不同的声音
+    // const audioBuffer = this.props.vm.getSoundBuffer(1)
+    // const sampleRate = audioBuffer.sampleRate
+    // const samples = audioBuffer.getChannelData(0)
+    // let source = this.audioContext.createBufferSource();
+    // source.buffer = audioBuffer
+    // var dest = this.audioContext.createMediaStreamDestination();
+    // source.connect(dest)
+    // dest.stream.getAudioTracks().forEach(function(track) {
+    //   console.log("track")
+    //   console.log(track)
+    //   finalStream.addTrack(track);
+    // });
+    //
+    // navigator.mediaDevices.getUserMedia({ audio: true })
+    //   .then(audioStream => {
+    //     console.log("stream: " + audioStream)
+    //
+    //     const canvas = document.querySelector('canvas');
+    //     const canvasStream = canvas.captureStream(); // frames per second
+    //     let options = {mimeType: 'video/webm'};
+    //
+    //     window.AudioContext = window.AudioContext || window.webkitAudioContext;
+    //     var ac = new AudioContext();
+    //     var dest = ac.createMediaStreamDestination();
+    //
+    //     // merge the stream
+    //     audioStream.getAudioTracks().forEach(function(track) {
+    //       finalStream.addTrack(track);
+    //     });
+    //     dest.stream.getAudioTracks().forEach(function(track) {
+    //       finalStream.addTrack(track);
+    //     });
+    //     canvasStream.getVideoTracks().forEach(function(track) {
+    //       finalStream.addTrack(track);
+    //     });
+    //
+    //     mediaRecorder = new MediaRecorder(finalStream, options);
+    //     mediaRecorder.onstop = this.handleStop;
+    //     mediaRecorder.ondataavailable = this.handleDataAvailable;
+    //     mediaRecorder.start(100); // collect 100ms of data
+    //     source.start();
+    //   });
+    //
+    this.recorder.start()
   }
 
   recordAudio(){
-    // 换index可以切换到不同的声音
+    换index可以切换到不同的声音
     const audioBuffer = this.props.vm.getSoundBuffer(1)
     const sampleRate = audioBuffer.sampleRate
     const samples = audioBuffer.getChannelData(0)
